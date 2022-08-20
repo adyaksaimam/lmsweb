@@ -1,6 +1,5 @@
-/* eslint-disable no-unused-vars */
 /* eslint-disable prettier/prettier */
-import React, { useEffect, useState, createRef } from 'react'
+import React, { useState } from 'react'
 import {
   CForm,
   CCard,
@@ -12,39 +11,75 @@ import {
 } from '@coreui/react'
 import { Form, Alert, InputGroup, Button, Container, Row, Col } from 'react-bootstrap'
 import CourseList from './CourseList'
-import CourseDataService from './services/course.service'
+import CourseDataService from '../services/course.service'
+import { addDoc, collection, Timestamp } from 'firebase/firestore'
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { storage, db } from 'src/config/firebase'
 
 const Course = (id, setCourseId) => {
-  const [title, settitle] = useState('')
+  const [coursetitle, setcoursetitle] = useState('')
   const [course_format, setcourse_format] = useState('')
-  const [course_overview, setcourse_overview] = useState('')
   const [body, setbody] = useState('')
   const [certification, setcertification] = useState('')
   const [message, setMessage] = useState({ error: false, msg: '' })
+  const [setFormData] = useState({
+    title: '',
+    Description: '',
+    image: '',
+    tanggal: Timestamp.now().toDate(),
+  })
 
+  const handleImageChange = (e) => {
+    setFormData({ ...newCourse, image: e.target.files[0] })
+  }
   //For Course List
   const [courseId] = useState('')
   const getCourseIdHandler = (id) => {
     console.log('The ID of document to be edited', id)
     setCourseId(id)
   }
+  const [progress, setProgress] = useState(0)
   const handleSubmit = async (e) => {
     e.preventDefault()
     setMessage('')
-    if (title === '' || course_overview === '') {
+    if (coursetitle === '' || body === '') {
       setMessage({
         error: true,
-        msg: 'Title and Course Overview are mandatory!',
+        msg: 'Title and Body are mandatory!',
       })
       return
     }
-    const newCourse = {
-      title,
-      course_format,
-      course_overview,
-      body,
-      certification,
-    }
+    const storageRef = ref(storage, `/images/${Date.now()}${newCourse.image.name}`)
+    const uploadImage = uploadBytesResumable(storageRef, newCourse.image)
+    uploadImage.on(
+      'state_changed',
+      (snapshot) => {
+        const progressPercent = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100)
+        setProgress(progressPercent)
+      },
+      (err) => {
+        console.log(err)
+      },
+      () => {
+        newCourse({
+          coursetitle: '',
+          course_format: '',
+          image: '',
+          body: ' ',
+        })
+
+        getDownloadURL(uploadImage.snapshot.ref).then((url) => {
+          const jobRef = collection(db, 'course')
+          addDoc(jobRef, {
+            coursetitle: newCourse.coursetitle,
+            course_format: newCourse.course_format,
+            body: newCourse.body,
+            imageUrl: url,
+            tanggal: Timestamp.now().toDate(),
+          })
+        })
+      },
+    )
     console.log(newCourse)
 
     try {
@@ -54,9 +89,8 @@ const Course = (id, setCourseId) => {
       setMessage({ error: true, msg: err.message })
     }
 
-    settitle('')
+    setcoursetitle('')
     setcourse_format('')
-    setcourse_overview('')
     setbody('')
     setcertification('')
   }
@@ -68,9 +102,12 @@ const Course = (id, setCourseId) => {
   //     const docSnap = await CourseDataService.getCourse(id)
   //     console.log('the record is :', docSnap.data())
   //     settitle(docSnap.data().title)
+  //     setcourse_type(docSnap.data().course_type)
   //     setcourse_format(docSnap.data().course_format)
   //     setcourse_overview(docSnap.data().course_overview)
+  //     setparticipant(docSnap.data().participant)
   //     setbody(docSnap.data().body)
+  //     setcovered_course(docSnap.data().covered_course)
   //     setcertification(docSnap.data().certification)
   //   } catch (err) {
   //     setMessage({ error: true, msg: err.message })
@@ -117,7 +154,10 @@ const Course = (id, setCourseId) => {
               <CFormLabel htmlFor="basic-url">Add Course</CFormLabel>
               <InputGroup>
                 <InputGroup.Text id="formCourseTitle">Course Title</InputGroup.Text>
-                <CFormTextarea value={title} onChange={(e) => settitle(e.target.value)} />
+                <CFormTextarea
+                  value={coursetitle}
+                  onChange={(e) => setcoursetitle(e.target.value)}
+                />
               </InputGroup>
             </Form.Group>
 
@@ -136,17 +176,6 @@ const Course = (id, setCourseId) => {
               </InputGroup>
             </Form.Group>
 
-            <Form.Group className="mb-3" controlId="formCourse Overview">
-              <InputGroup>
-                <InputGroup.Text id="formCourse Overview">Course Overview</InputGroup.Text>
-                <CFormTextarea
-                  as="textarea"
-                  value={course_overview}
-                  onChange={(e) => setcourse_overview(e.target.value)}
-                />
-              </InputGroup>
-            </Form.Group>
-
             <Form.Group className="mb-3" controlId="formBody">
               <InputGroup>
                 <InputGroup.Text id="formBody">Body</InputGroup.Text>
@@ -159,12 +188,16 @@ const Course = (id, setCourseId) => {
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formImage">
-              <CFormLabel htmlFor="basic-url">Add Image</CFormLabel>
-              <InputGroup>
-                <CFormInput type="file" id="formFile" />
-              </InputGroup>
+              <CFormLabel htmlFor="basic-url">Add Image or Video</CFormLabel>
+              <label htmlFor="">Image</label>
+              <input
+                type="file"
+                name="image"
+                accept="image/*"
+                className="form-control"
+                onChange={(e) => handleImageChange(e)}
+              />
             </Form.Group>
-
 
             <Form.Group className="mb-3" controlId="formCertification">
               <InputGroup>

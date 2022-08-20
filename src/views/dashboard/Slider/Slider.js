@@ -37,7 +37,7 @@ export default function Slider() {
                     key={obj.id}
                     className={slideIndex === index + 1 ? "slide active-anim" : "slide"}
                     >
-                        <img
+                        <img 
                         src={process.env.PUBLIC_URL + `/Imgs/dash${index + 1}.png`} 
                         />
                     </div>

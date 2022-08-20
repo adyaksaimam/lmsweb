@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+/* eslint-disable prettier/prettier */
 import React from 'react'
 import { CCard, CCardHeader, CCardBody } from '@coreui/react'
 import { DocsLink } from 'src/components'
@@ -8,10 +8,7 @@ const Typography = () => {
     <>
       <CCard className="mb-4">
         <CCardBody>
-          <p>
-            Documentation and examples for Bootstrap typography, including global settings,
-            headings, body text, lists, and more.
-          </p>
+          <h1>Big Data Analysis</h1>
           <table className="table">
             <thead>
               <tr>
